@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import json
+
 import requests
 import zipfile
 
@@ -9,7 +11,7 @@ archive_observations.py creates or updates user backups of observations on the M
 
 # Update these 3 vars before executing the script
 user = "dwilderness" # username or id to archive the observations of
-image_size = "480" # string one of 480, 640, 1280, orig
+image_size = "orig" # string one of 480, 640, 1280, orig
 backup_archive = f"{user}-mo-bkp.zip" # name of the archive to create or update, ex. "4786" or "alsmith"
 
 
@@ -46,7 +48,7 @@ def get_image(image_id, i_size=image_size):
         r.raw.decode_content = True
         return filename, r.raw
     else:
-        print('Image could not be retrieved')
+        print(f'Image {image_url} could not be retrieved')
 
 
 def get_observation(id):
@@ -59,7 +61,7 @@ def get_observation(id):
     if response.status_code == 200:
         # iterate over any pictures
         print(f"Archiving: {id}.json")
-        zip.writestr(f"{id}/{id}.json", response.content)
+        zip.writestr(f"{id}/{id}.json", json.dumps(response.json(), sort_keys=True, indent=4))
         for image in response.json()['results'][0]['images']:
             # add them to the zip archive in a folder named {id}, where ID is the observation ID
             print(f"Archiving: {image['id']}.jpg")
@@ -71,7 +73,7 @@ def get_observation(id):
 
 
 # Open the zipfile
-with zipfile.ZipFile(backup_archive, 'a') as zip:
+with zipfile.ZipFile(backup_archive, 'a', compression=zipfile.ZIP_STORED) as zip:
     # get user's observations
     obs = get_user_observations(user)
     # iterate
